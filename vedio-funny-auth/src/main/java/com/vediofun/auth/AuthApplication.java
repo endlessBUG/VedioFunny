@@ -1,0 +1,37 @@
+package com.vediofun.auth;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
+
+@SpringBootApplication(scanBasePackages = {"com.vediofun"})
+@EnableDiscoveryClient
+public class AuthApplication {
+
+    public static void main(String[] args) {
+        // 设置系统属性，强制使用Druid连接池
+        System.setProperty("spring.datasource.type", "com.alibaba.druid.pool.DruidDataSource");
+        SpringApplication.run(AuthApplication.class, args);
+    }
+
+    @Bean
+    public ApplicationRunner applicationRunner(@Autowired Environment environment) {
+        return args -> {
+            String port = environment.getProperty("local.server.port");
+            System.out.println("🔐 VedioFun Auth Service Started Successfully!");
+            System.out.println("🔑 Service running on port: " + port);
+            System.out.println("🌐 Access via Gateway: http://localhost:8082/api/auth/**");
+            System.out.println("📋 Health Check: http://localhost:" + port + "/actuator/health");
+            System.out.println("🔍 Druid Monitor: http://localhost:" + port + "/druid/");
+            
+            // 打印数据源信息
+            String dataSourceType = environment.getProperty("spring.datasource.type");
+            System.out.println("💾 DataSource Type: " + dataSourceType);
+            System.out.println("🔐 认证服务 - 数据库已连接");
+        };
+    }
+} 

@@ -1,0 +1,61 @@
+# VedioFun Common 公共配置
+# 各模块通过 spring.profiles.include: common 引入
+
+spring:
+  # Nacos 服务发现配置
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:8848
+        namespace: # 默认命名空间 public
+        group: DEFAULT_GROUP
+        cluster-name: DEFAULT
+        # 心跳配置
+        heart-beat-interval: 5000
+        heart-beat-timeout: 15000
+        # IP配置
+        ip-delete-timeout: 30000
+        instance-enabled: true
+        # 权重
+        weight: 1.0
+        # 是否优先使用IP地址注册
+        prefer-ip-address: true
+        # 实例元数据
+        metadata:
+          version: 1.0.0
+          author: VedioFun Team
+          
+      # Nacos 配置中心
+      config:
+        server-addr: localhost:8848
+        namespace: # 默认命名空间 public
+        group: DEFAULT_GROUP
+        file-extension: yml
+        refresh-enabled: true
+        import-check:
+          enabled: false
+
+    # Sentinel配置已迁移到Nacos配置中心
+    # 请在 vedio-funny-common.yml (Nacos) 中配置Sentinel
+
+  # Redis 配置已迁移到Nacos配置中心
+  # 请在 vedio-funny-common.yml 中配置Redisson
+
+# 公共日志配置
+logging:
+  level:
+    com.alibaba.nacos: INFO
+    org.springframework.cloud.commons: INFO
+    org.springframework.cloud.context: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# 公共管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized 

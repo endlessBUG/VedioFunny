@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.vediofun</groupId>
+        <artifactId>vedio-funny</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>vedio-funny-registry</artifactId>
+    <packaging>pom</packaging>
+
+    <name>Vedio Funny Nacos Distribution</name>
+    <description>基于官方Nacos 2.3.0安装包的服务注册与配置中心 - 专为VedioFun微服务架构定制</description>
+
+
+</project>

@@ -1,0 +1,184 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: vedio-funny-gateway
+  profiles:
+    active: dev
+  
+  # 配置中心引入（只引入必要的配置，避免Feign冲突）
+  config:
+    import:
+      - "optional:nacos:${spring.application.name}?group=DEFAULT_GROUP&refreshEnabled=true"
+      - "optional:nacos:vedio-funny-sentinel.yml?group=DEFAULT_GROUP&refreshEnabled=true"
+  
+  cloud:
+    nacos:
+      server-addr: localhost:8848
+      config:
+        server-addr: ${spring.cloud.nacos.server-addr}
+        file-extension: yml
+        namespace: # 默认命名空间 public
+        group: DEFAULT_GROUP
+      discovery:
+        server-addr: localhost:8848
+        namespace: public
+        group: DEFAULT_GROUP
+        cluster-name: DEFAULT
+        instance-enabled: true
+        prefer-ip-address: true
+        weight: 1.0
+        metadata:
+          version: 1.0.0
+          zone: dev
+
+    
+    # Gateway网关配置
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        # 认证服务路由
+        - id: vedio-funny-auth
+          uri: lb://vedio-funny-auth
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=2
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY,GATEWAY_TIMEOUT
+                methods: GET,POST
+        
+        # 用户服务路由
+        - id: vedio-funny-user
+          uri: lb://vedio-funny-user
+          predicates:
+            - Path=/api/user/**
+          filters:
+            - StripPrefix=2
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY,GATEWAY_TIMEOUT
+                methods: GET,POST
+        
+        # 模型服务路由 - API端点 (优先级更高)
+        - id: vedio-funny-model-api
+          uri: lb://vedio-funny-model
+          predicates:
+            - Path=/api/model/**
+          filters:
+            - StripPrefix=2
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY,GATEWAY_TIMEOUT
+                methods: GET,POST
+        
+        # 模型服务路由 - Service端点
+        - id: vedio-funny-model-service
+          uri: lb://vedio-funny-model
+          predicates:
+            - Path=/api/model/**
+          filters:
+            - StripPrefix=2
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY,GATEWAY_TIMEOUT
+                methods: GET,POST
+        
+        # 模型服务路由 - 其他端点 (hello, sentinel等)
+        - id: vedio-funny-model
+          uri: lb://vedio-funny-model
+          predicates:
+            - Path=/api/model/**
+          filters:
+            - StripPrefix=2
+            - name: Retry
+              args:
+                retries: 3
+                statuses: BAD_GATEWAY,GATEWAY_TIMEOUT
+                methods: GET,POST
+      
+      # 全局CORS配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origins: "*"
+            allowed-methods: "*"
+            allowed-headers: "*"
+            allow-credentials: false
+            max-age: 3600
+
+# Feign配置
+feign:
+  sentinel:
+    enabled: true
+  compression:
+    request:
+      enabled: true
+      mime-types: text/xml,application/xml,application/json
+      min-request-size: 2048
+    response:
+      enabled: true
+  client:
+    config:
+      default:
+        connectTimeout: 30000
+        readTimeout: 60000
+        loggerLevel: basic
+
+# 监控端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    health:
+      show-details: always
+    gateway:
+      enabled: true
+    prometheus:
+      enabled: false
+
+# 网关特定配置
+gateway:
+  # 认证服务地址 (使用负载均衡)
+  auth-service-url: lb://vedio-funny-auth
+  # 白名单路径 (不需要认证)
+  whitelist-paths:
+    - "/api/auth/login"
+    - "/api/auth/register"
+    - "/api/auth/refresh"
+    - "/api/auth/health"
+    - "/actuator/**"
+    - "/gateway/**"
+
+# Gateway专用日志配置
+logging:
+  level:
+    root: INFO
+    # 应用日志 - 只显示INFO级别
+    com.vediofun.gateway: INFO
+    
+    # 其他框架日志设为WARN，减少输出
+    org.springframework.cloud.gateway: WARN
+    org.springframework.cloud.gateway.filter: WARN
+    org.springframework.web.reactive: WARN
+    feign: WARN
+    org.springframework.cloud.openfeign: WARN
+    org.springframework.cloud.loadbalancer: WARN
+    com.alibaba.cloud.nacos.discovery: WARN
+    reactor.netty.http: WARN
+    
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  console:
+    charset: UTF-8 

@@ -1,0 +1,99 @@
+server:
+  port: 0
+  # 开启错误详情显示
+  error:
+    include-exception: true
+    include-stacktrace: always
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: vedio-funny-auth
+  
+  # 引入公共配置（超简单方式）
+  config:
+    import:
+      - "classpath:application-common.yml"
+      - "optional:nacos:vedio-funny-common.yml?group=DEFAULT_GROUP&refreshEnabled=true"
+  
+  # 服务特定元数据
+  cloud:
+    nacos:
+      discovery:
+        metadata:
+          description: VedioFun认证服务 - 用户认证与授权
+
+# JWT 配置 (服务特定)
+jwt:
+  secret: vedio-fun-auth-jwt-secret-key-2024
+  expiration: 86400000  # 24小时
+  refresh-expiration: 604800000  # 7天
+
+# 认证服务特定配置
+auth:
+  # 白名单路径 (不需要认证)
+  whitelist-paths:
+    - "/auth/login"
+    - "/auth/register"
+    - "/auth/refresh"
+    - "/actuator/**"
+  # 令牌黑名单缓存过期时间 (秒)
+  token-blacklist-timeout: 86400
+
+# 详细日志配置 (调试模式)
+logging:
+  level:
+    root: INFO
+    # 认证服务详细日志
+    com.vediofun.auth: DEBUG
+    
+    # Web请求详细日志
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet: DEBUG
+    org.springframework.web.servlet.DispatcherServlet: DEBUG
+    org.springframework.web.filter.CommonsRequestLoggingFilter: DEBUG
+    
+    # 异常和错误详细日志
+    com.vediofun.common.exception: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: DEBUG
+    
+    # 数据库和JPA日志
+    org.springframework.orm.jpa: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    
+    # Redis连接日志
+    org.springframework.data.redis: DEBUG
+    org.redisson: DEBUG
+    
+    # 安全相关日志
+    org.springframework.security: DEBUG
+    
+    # 服务调用日志
+    org.springframework.cloud.openfeign: DEBUG
+    feign: DEBUG
+    
+    # Nacos配置日志
+    com.alibaba.nacos: INFO
+    
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{50}] - %msg%n"
+    
+  # 文件日志配置
+  file:
+    name: logs/vedio-funny-auth.log
+  logback:
+    rollingpolicy:
+      max-file-size: 50MB
+      max-history: 30
+
+# 显示HTTP请求详情和错误信息
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+            show-details: always 

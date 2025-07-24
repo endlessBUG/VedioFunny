@@ -1,0 +1,525 @@
+# VedioFun 通用配置 - 存储在 Nacos 配置中心
+# Data ID: vedio-funny-common.yml
+# Group: DEFAULT_GROUP
+# 此配置被所有微服务共享
+
+# =================================
+# MyBatis-Plus 通用配置
+# =================================
+mybatis-plus:
+  configuration:
+    # 驼峰命名映射
+    map-underscore-to-camel-case: true
+    # 日志实现
+    log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
+    # 关闭缓存
+    cache-enabled: false
+    # 设置超时时间
+    default-statement-timeout: 30
+  
+  global-config:
+    # 数据库配置
+    db-config:
+      # 逻辑删除字段
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      # 主键类型
+      id-type: assign_id
+      # 表名前缀
+      table-prefix: ""
+      # 字段策略
+      insert-strategy: not_null
+      update-strategy: not_null
+      select-strategy: not_empty
+    
+    # 关闭 MyBatis-Plus 横幅
+    banner: false
+    
+    # 禁用 SQL 运行器和 DDL 自动执行 (重要：解决 ddlApplicationRunner 问题)
+    enable-sql-runner: false
+    
+    # 注意：meta-object-handler 不能在配置文件中直接指定，需要通过 @Component 注解注册
+  
+  # 类型别名包扫描
+  type-aliases-package: com.vediofun.*.entity
+  
+  # Mapper XML 文件位置
+  mapper-locations: classpath*:/mapper/**/*.xml
+
+# =================================
+# Spring 框架通用配置
+# =================================
+spring:
+  # =================================
+  # 分布式追踪配置
+  # =================================
+  tracing:
+    sampling:
+      probability: 1.0  # 采样率，1.0表示100%采样
+    propagation:
+      type: W3C  # 使用W3C追踪上下文格式
+    brave:
+      enabled: true
+      span-joining: true
+    zipkin:
+      enabled: true
+      endpoint: http://localhost:9411/api/v2/spans
+      service:
+        name: ${spring.application.name}
+  observations:
+    enabled: true
+  # 数据源配置
+  datasource:
+    # 主数据库连接配置（MySQL - 生产环境推荐）
+    type: com.alibaba.druid.pool.DruidDataSource
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://js2.blockelite.cn:10658/vedio_func?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+    username: remote_admin
+    password: StrongPass123!
+    
+    # 德鲁伊连接池配置
+    druid:
+      # 初始连接数
+      initial-size: 10
+      # 最小连接池数量
+      min-idle: 10
+      # 最大连接池数量
+      max-active: 50
+      # 配置获取连接等待超时的时间
+      max-wait: 60000
+      # 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位毫秒
+      time-between-eviction-runs-millis: 60000
+      # 配置一个连接在池中最小生存的时间，单位毫秒
+      min-evictable-idle-time-millis: 300000
+      # 配置一个连接在池中最大生存的时间，单位毫秒
+      max-evictable-idle-time-millis: 900000
+      # 用来检测连接是否有效的sql，MySQL使用SELECT 1
+      validation-query: SELECT 1
+      # 连接池预热配置
+      validation-query-timeout: 1
+      # 建议配置为true，不影响性能，并且保证安全性
+      test-while-idle: true
+      # 申请连接时执行validationQuery检测连接是否有效
+      test-on-borrow: false
+      # 归还连接时执行validationQuery检测连接是否有效
+      test-on-return: false
+      # 启动时预热连接池 - 关键配置
+      init: true
+      # 启动时验证连接有效性
+      test-on-connect: true
+      # 连接初始化时执行的SQL语句(预热)
+      connection-init-sqls: 
+        - "SELECT 1"
+        - "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'"
+      # 启动时异步初始化连接池
+      async-init: true
+      # 启动时初始化失败是否抛出异常
+      fail-fast: true
+      # 是否缓存preparedStatement，也就是PSCache
+      pool-prepared-statements: true
+      # 要启用PSCache，必须配置大于0，当大于0时，poolPreparedStatements自动触发修改为true
+      max-pool-prepared-statement-per-connection-size: 20
+      # 配置监控统计拦截的filters，去掉后监控界面sql无法统计，'wall'用于防火墙
+      filters: stat,wall,slf4j
+      # 通过connectProperties属性来打开mergeSql功能；慢SQL记录；关闭自动提交
+      connection-properties: druid.stat.mergeSql=true;druid.stat.slowSqlMillis=5000;druid.defaultAutoCommit=false
+      # 合并多个DruidDataSource的监控数据
+      use-global-data-source-stat: true
+      # 连接泄漏检测超时时间(毫秒)
+      remove-abandoned-timeout: 1800
+      # 是否在连接泄漏时记录日志
+      log-abandoned: true
+      # 是否自动回收超时连接
+      remove-abandoned: true
+      # 预热优化配置
+      # 最大等待线程数，超过抛异常
+      max-wait-thread-count: 20
+      # 是否公平锁，true表示先到先得
+      use-unfair-lock: false
+      # 连接出错重试次数
+      connection-error-retry-attempts: 1
+      # 数据库连接出错后,多长时间后再重试连接,单位毫秒
+      break-after-acquire-failure: true
+      
+      # Web监控配置
+      web-stat-filter:
+        enabled: true
+        url-pattern: /*
+        exclusions: "*.js,*.gif,*.jpg,*.png,*.css,*.ico,/druid/*"
+        
+      # StatViewServlet监控页面配置
+      stat-view-servlet:
+        enabled: true
+        url-pattern: /druid/*
+        # 控制台管理用户名和密码
+        login-username: admin
+        login-password: 123456
+        reset-enable: true
+        # 白名单
+        allow: 127.0.0.1,::1
+        # 黑名单
+        deny:
+  
+  # JPA 通用配置 - 增强版
+  jpa:
+    # Hibernate 配置
+    hibernate:
+      # DDL 策略：update(开发) / validate(生产)
+      ddl-auto: update
+      # 命名策略
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyLegacyJpaImpl
+    # 显示SQL（开发环境true，生产环境false）
+    show-sql: true
+    # SQL格式化和其他属性
+    properties:
+      hibernate:
+        # 数据库方言
+        dialect: org.hibernate.dialect.MySQL8Dialect
+        # 格式化SQL
+        format_sql: true
+        # 显示SQL注释
+        use_sql_comments: true
+        # JDBC 配置
+        jdbc:
+          # 批量处理大小
+          batch_size: 50
+          # 获取大小
+          fetch_size: 50
+          # 批量版本数据处理
+          batch_versioned_data: true
+        # 优化配置
+        order_inserts: true
+        order_updates: true
+        # 查询缓存
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
+        # 统计信息
+        generate_statistics: false
+    # 关闭开放式会话视图
+    open-in-view: false
+    # 推迟数据源初始化
+    defer-datasource-initialization: true
+    # 数据库平台
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+
+  # Sentinel 流量控制和熔断配置
+  cloud:
+    sentinel:
+      # 传输层配置 - 连接Dashboard
+      transport:
+        dashboard: localhost:8084  # Dashboard地址
+        port: 8719  # 与Dashboard通信端口
+        heartbeat-interval-ms: 10000  # 心跳间隔
+      # 饥饿加载 - 启动时立即初始化
+      eager: true
+      # Web请求过滤配置
+      filter:
+        enabled: true
+        url-patterns: /**
+      # 数据源配置 - 规则持久化到Nacos（推荐生产环境）
+      datasource:
+        # 流控规则
+        flow:
+          nacos:
+            server-addr: localhost:8848
+            dataId: ${spring.application.name}-flow-rules
+            groupId: SENTINEL_GROUP
+            rule-type: flow
+            namespace: # 使用默认命名空间
+        # 熔断降级规则  
+        degrade:
+          nacos:
+            server-addr: localhost:8848
+            dataId: ${spring.application.name}-degrade-rules
+            groupId: SENTINEL_GROUP
+            rule-type: degrade
+            namespace: # 使用默认命名空间
+        # 热点参数规则
+        param-flow:
+          nacos:
+            server-addr: localhost:8848
+            dataId: ${spring.application.name}-param-flow-rules
+            groupId: SENTINEL_GROUP
+            rule-type: param-flow
+            namespace: # 使用默认命名空间
+        # 系统规则
+        system:
+          nacos:
+            server-addr: localhost:8848
+            dataId: ${spring.application.name}-system-rules
+            groupId: SENTINEL_GROUP
+            rule-type: system
+            namespace: # 使用默认命名空间
+        # 授权规则
+        authority:
+          nacos:
+            server-addr: localhost:8848
+            dataId: ${spring.application.name}-authority-rules
+            groupId: SENTINEL_GROUP
+            rule-type: authority
+            namespace: # 使用默认命名空间
+
+  # Redis 配置 - 支持多种客户端
+  redis:
+    # 标准Redis配置 (Lettuce客户端)
+    host: js2.blockelite.cn
+    port: 10659
+    timeout: 5000ms
+    database: 0
+    # 连接池配置
+    lettuce:
+      pool:
+        max-active: 20
+        max-idle: 8
+        min-idle: 5
+        max-wait: -1ms
+    
+    # Redisson配置 (可选)
+    redisson:
+      config: |
+        # 单节点 Redis 配置
+        singleServerConfig:
+          address: "redis://js2.blockelite.cn:10659"
+          # database: 各服务单独配置
+          connectTimeout: 5000
+          timeout: 5000
+          connectionPoolSize: 20
+          connectionMinimumIdleSize: 5
+          idleConnectionTimeout: 10000
+          retryAttempts: 3
+          retryInterval: 1500
+        
+        # JSON 序列化配置
+        codec: !<org.redisson.codec.JsonJacksonCodec> {}
+        
+        # 线程配置
+        threads: 16
+        nettyThreads: 32
+
+# =================================
+# Sentinel 流量控制配置说明
+# =================================
+# 1. Dashboard连接: 各微服务自动连接到 localhost:8084
+# 2. 规则持久化: 所有规则保存到Nacos配置中心，重启不丢失
+# 3. 规则命名规则: ${应用名}-${规则类型}-rules 
+#    - 例如: vedio-funny-auth-flow-rules (流控规则)
+#           vedio-funny-gateway-degrade-rules (熔断规则)
+# 4. 配置中心存储: 规则自动存储在Nacos的SENTINEL_GROUP分组下
+# 5. 实时生效: 在Dashboard中修改规则后立即生效，无需重启
+
+# =================================
+# 多数据源配置模板 (各服务可选择使用)
+# =================================
+datasource-profiles:
+  # MySQL 生产配置
+  mysql:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://js2.blockelite.cn:10658/vedio_main?useUnicode=true&characterEncoding=UTF-8&serverTimezone=UTC&useSSL=false&allowPublicKeyRetrieval=true
+    username: remote_admin
+    password: StrongPass123!
+  
+  # H2 开发配置（内存数据库）
+  h2-memory:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: ""
+  
+  # H2 文件配置（持久化）
+  h2-file:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:file:./data/vediofun;AUTO_SERVER=TRUE
+    username: sa
+    password: ""
+
+# =================================
+# 数据库连接池扩展配置 (Druid连接池)
+# =================================
+# 连接池预热说明：
+# 1. init=true: 启动时立即初始化连接池，创建初始连接数量的物理连接
+# 2. async-init=true: 异步初始化，避免阻塞应用启动
+# 3. test-on-connect=true: 连接创建时验证有效性
+# 4. connection-init-sqls: 连接创建时执行的预热SQL，确保连接就绪
+# 5. fail-fast=true: 初始化失败时快速抛出异常，便于问题排查
+# 预热的好处：
+# - 避免第一次访问数据库时的冷启动延迟
+# - 确保连接池中的连接都是可用的
+# - 提高生产环境的响应性能和稳定性
+datasource-common:
+  druid:
+    # 连接池基础配置
+    initial-size: 10
+    min-idle: 10
+    max-active: 50
+    max-wait: 60000
+    # 连接检测配置
+    validation-query: SELECT 1
+    validation-query-timeout: 1
+    test-while-idle: true
+    test-on-borrow: false
+    test-on-return: false
+    test-on-connect: true
+    # 预热配置
+    init: true
+    async-init: true
+    fail-fast: true
+    connection-init-sqls: 
+      - "SELECT 1"
+      - "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'"
+    # 连接泄漏检测
+    remove-abandoned: true
+    remove-abandoned-timeout: 1800
+    log-abandoned: true
+    # 预热优化配置
+    max-wait-thread-count: 20
+    use-unfair-lock: false
+    connection-error-retry-attempts: 1
+    break-after-acquire-failure: true
+
+# =================================
+# 数据源监控配置
+# =================================
+druid:
+  # 慢SQL监控
+  slow-sql-millis: 5000
+  # SQL监控开关
+  log-slow-sql: true
+  # 统计监控开关
+  stat-enable: true
+
+# =================================
+# API 文档通用配置
+# =================================
+knife4j:
+  enable: true
+  setting:
+    language: zh_CN
+    enable-version: true
+    enable-swagger-models: true
+    swagger-model-name: 实体类列表
+    enable-document-manage: true
+    enable-reload-cache-parameter: false
+    enable-after-script: true
+    enable-filter-multipart-api-method-type: POST
+    enable-filter-multipart-apis: false
+    enable-request-cache: true
+    enable-host: false
+    enable-host-text: 192.168.0.193:8000
+    enable-home-custom: true
+    home-custom-path: classpath:markdown/home.md
+    enable-search: true
+    enable-footer: false
+    enable-footer-custom: true
+    footer-custom-content: Apache License 2.0 | Copyright  2024-[VedioFun](https://vediofun.com/)
+    enable-dynamic-parameter: false
+    enable-debug: true
+    enable-open-api: false
+    enable-group: true
+  cors: false
+  production: false
+  basic:
+    enable: false
+    username: admin
+    password: 123321
+
+# =================================
+# 日志通用配置
+# =================================
+logging:
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%logger{50}] - %msg%n'
+    level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]'
+  level:
+    # 通用日志级别
+    com.vediofun: INFO
+    org.springframework.cloud: INFO
+    com.alibaba.nacos: WARN
+    # MyBatis 日志
+    com.baomidou.mybatisplus: DEBUG
+    # Druid数据源日志
+    com.alibaba.druid: INFO
+    druid.sql.Statement: DEBUG
+    druid.sql.ResultSet: DEBUG
+    # Hibernate SQL日志
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    # Redis 日志
+    org.redisson: WARN
+    # Sentinel 日志
+    com.alibaba.csp.sentinel: INFO
+    com.alibaba.cloud.sentinel: INFO
+
+# =================================
+# Actuator 监控通用配置
+# =================================
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,nacos-discovery,prometheus,druid,beans,env,configprops,sentinel
+  endpoint:
+    health:
+      show-details: when-authorized
+    druid:
+      enabled: true
+  health:
+    nacos:
+      enabled: true
+    db:
+      enabled: true
+    sentinel:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# =================================
+# Feign 通用配置
+# =================================
+feign:
+  client:
+    config:
+      default:
+        connect-timeout: 5000
+        read-timeout: 30000
+        logger-level: basic
+  httpclient:
+    enabled: true
+    max-connections: 200
+    max-connections-per-route: 50
+  compression:
+    request:
+      enabled: true
+      mime-types: text/xml,application/xml,application/json
+      min-request-size: 2048
+    response:
+      enabled: true
+
+# =================================
+# 应用信息通用配置
+# =================================
+info:
+  app:
+    name: VedioFun微服务
+    description: 基于Spring Cloud的AI视频处理平台
+    version: 1.0.0
+    encoding: '@project.build.sourceEncoding@'
+    java:
+      source: '@java.version@'
+      target: '@java.version@'
+    datasource:
+      type: Druid连接池
+      url: jdbc:mysql://js2.blockelite.cn:10658/vedio_func
+    features:
+      - MyBatis-Plus增强
+      - Druid连接池监控
+      - JPA批量处理优化
+      - Redis缓存支持
+      - Feign服务调用
+      - Sentinel流量控制
+      - Nacos规则持久化 

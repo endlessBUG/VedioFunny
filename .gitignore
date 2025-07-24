@@ -1,0 +1,329 @@
+# ================================
+# VedioFun 项目 .gitignore
+# 支持：Vue前端 + Maven Java后端
+# ================================
+
+# ================================
+# Java / Maven 后端相关
+# ================================
+
+# Maven 构建目录
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# VedioFun 项目重要服务文件例外（使用LFS存储）
+!vedio-funny-registry/nacos/target/nacos-server.jar
+!vedio-funny-sentinel/lib/sentinel-dashboard-*.jar
+!vedio-funny-sentinel/lib/*.jar
+
+# Maven 依赖和构建文件
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties
+
+# Gradle (如果使用)
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Java 编译文件
+*.class
+*.jar
+# VedioFun 重要服务JAR文件例外（使用LFS存储）
+!vedio-funny-registry/nacos/target/nacos-server.jar
+!vedio-funny-sentinel/lib/sentinel-dashboard-*.jar
+*.war
+*.ear
+*.nar
+
+# JVM 相关
+hs_err_pid*
+replay_pid*
+
+# ================================
+# Vue / Node.js 前端相关
+# ================================
+
+# Node.js 依赖
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# NPM/Yarn 相关
+.npm
+.yarn-integrity
+.pnp
+.pnp.js
+
+# Vue 构建产物
+dist/
+build/
+
+# Vite 相关
+.vite
+.vite-temp/
+
+# Vue CLI 相关
+.DS_Store
+.env.local
+.env.*.local
+
+# Webpack 相关
+.cache/
+.parcel-cache/
+
+# ================================
+# IDE 和编辑器相关
+# ================================
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Sublime Text
+*.sublime-workspace
+*.sublime-project
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ================================
+# 操作系统相关
+# ================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.tmp
+*.temp
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ================================
+# 日志和临时文件
+# ================================
+
+# 应用日志
+logs/
+*.log
+log-*.txt
+
+# Spring Boot 相关
+spring.log
+spring-*.log
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.swp
+*.orig
+
+# ================================
+# 数据库相关
+# ================================
+
+# H2 数据库文件
+*.db
+*.mv.db
+*.trace.db
+data/
+
+# SQLite
+*.sqlite
+*.sqlite3
+
+# ================================
+# 配置和敏感信息
+# ================================
+
+# 环境配置文件
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 敏感配置（保留模板）
+application-prod.yml
+application-secret.yml
+*-secret.properties
+*-prod.properties
+
+# SSL 证书
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+
+# ================================
+# 媒体和资源文件（大文件）
+# ================================
+
+# 视频文件
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.mkv
+
+# 音频文件
+*.mp3
+*.wav
+*.flac
+*.aac
+
+# 图片文件（大尺寸）
+*.psd
+*.ai
+
+# ================================
+# 文档和压缩文件
+# ================================
+
+# 压缩文件
+*.zip
+*.rar
+*.7z
+*.tar.gz
+*.tgz
+
+# Office 文档临时文件
+~$*.doc*
+~$*.xls*
+~$*.ppt*
+
+# ================================
+# 项目特定忽略
+# ================================
+
+# VedioFun 项目特定
+models/
+uploads/
+storage/
+
+# Nacos 本地数据（如果存在）
+nacos-data/
+
+# 本地测试脚本
+test-local.*
+debug-local.*
+
+# 备份文件
+*.backup
+*_backup.*
+
+# ================================
+# 包管理器锁文件（可选保留）
+# ================================
+
+# 如果团队统一包管理器，可以保留对应的锁文件
+# package-lock.json    # NPM
+# yarn.lock           # Yarn
+# pnpm-lock.yaml      # PNPM
+
+# ================================
+# 其他
+# ================================
+
+# 缩略图
+.thumbnails
+
+# 测试覆盖率报告
+coverage/
+*.lcov
+
+# API 文档生成
+api-docs/
+
+# 错误报告和调试
+*.stackdump 

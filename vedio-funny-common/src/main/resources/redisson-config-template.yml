@@ -1,0 +1,45 @@
+# Redisson 配置模板
+# 使用 redisson-spring-boot-starter，只需要配置 spring.redis.redisson.*
+
+spring:
+  redis:
+    redisson:
+      config: |
+        # 单节点 Redis 配置
+        singleServerConfig:
+          address: "redis://js2.blockelite.cn:10659"
+          database: 0  # 不同服务使用不同数据库：0=model, 1=auth, 2=user, 3=gateway
+          password: # 如有密码
+          connectTimeout: 5000
+          timeout: 5000
+          connectionPoolSize: 20
+          connectionMinimumIdleSize: 5
+          idleConnectionTimeout: 10000
+          retryAttempts: 3
+          retryInterval: 1500
+        
+        # JSON 序列化配置
+        codec: !<org.redisson.codec.JsonJacksonCodec> {}
+        
+        # 线程配置
+        threads: 16
+        nettyThreads: 32
+
+# 🎯 自动获得的功能：
+# - RedissonClient：分布式锁、队列、集合等高级功能
+# - 自动健康检查
+# - 连接池管理
+# - 序列化/反序列化
+
+# 📝 使用示例：
+# @Autowired
+# private RedissonClient redissonClient;
+# 
+# // 分布式锁
+# RLock lock = redissonClient.getLock("myLock");
+# 
+# // Redis 集合
+# RList<String> list = redissonClient.getList("myList");
+# 
+# // Redis 哈希
+# RMap<String, Object> map = redissonClient.getMap("myMap"); 
