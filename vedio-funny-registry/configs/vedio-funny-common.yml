@@ -111,7 +111,7 @@ spring:
       # 连接初始化时执行的SQL语句(预热)
       connection-init-sqls: 
         - "SELECT 1"
-        - "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'"
+        - "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'"
       # 启动时异步初始化连接池
       async-init: true
       # 启动时初始化失败是否抛出异常
@@ -369,7 +369,7 @@ datasource-common:
     fail-fast: true
     connection-init-sqls: 
       - "SELECT 1"
-      - "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION'"
+      - "SET SESSION sql_mode='STRICT_TRANS_TABLES,NO_ZERO_DATE,NO_ZERO_IN_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION'"
     # 连接泄漏检测
     remove-abandoned: true
     remove-abandoned-timeout: 1800
