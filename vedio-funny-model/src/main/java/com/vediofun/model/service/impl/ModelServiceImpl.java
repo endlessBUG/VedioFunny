@@ -787,14 +787,14 @@ public class ModelServiceImpl implements ModelService {
                 cmd.append("export VLLM_CPU_KVCACHE_SPACE=8 && ");
                 cmd.append("${CONDA_HOME}/envs/${CONDA_ENV_NAME}/bin/python -m vllm.entrypoints.openai.api_server ")
                    .append("--model ").append(modelPath).append(" ")
-                   .append("--host 127.0.0.1 ")
+                   .append("--host 0.0.0.0 ")
                    .append("--port 8000");
                 break;
                 
             case "tgi":
                 cmd.append("${CONDA_HOME}/envs/${CONDA_ENV_NAME}/bin/python -m text_generation_server.cli.serve ")
                    .append("--model-id ").append(modelPath).append(" ")
-                   .append("--hostname 127.0.0.1 ")
+                   .append("--hostname 0.0.0.0 ")
                    .append("--port 8000 ");
                 if (maxConcurrency != null) {
                     cmd.append("--max-concurrent-requests ").append(maxConcurrency).append(" ");
