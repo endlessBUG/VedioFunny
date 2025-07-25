@@ -1,7 +1,9 @@
 package com.vediofun.model.service.impl;
 
 import com.vediofun.model.entity.Model;
+import com.vediofun.model.entity.ModelDeploymentInstance;
 import com.vediofun.model.repository.ModelRepository;
+import com.vediofun.model.repository.ModelDeploymentInstanceRepository;
 import com.vediofun.model.service.ModelService;
 import com.vediofun.model.dto.InstallEnvironmentRequest;
 import com.vediofun.model.dto.InstallEnvironmentResult;
@@ -53,6 +55,7 @@ import java.util.concurrent.CompletableFuture;
 public class ModelServiceImpl implements ModelService {
 
     private final ModelRepository modelRepository;
+    private final ModelDeploymentInstanceRepository deploymentInstanceRepository;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -1820,5 +1823,43 @@ public class ModelServiceImpl implements ModelService {
             log.error("模型引擎依赖安装异常", e);
             return "失败: " + e.getMessage();
         }
+    }
+
+    @Override
+    public ModelDeploymentInstance saveDeploymentInstance(ModelDeploymentInstance instance) {
+        log.info("保存模型部署实例 - 模型ID: {}, 部署类型: {}", instance.getModelId(), instance.getDeploymentType());
+        return deploymentInstanceRepository.save(instance);
+    }
+
+    @Override
+    public ModelDeploymentInstance updateDeploymentInstanceStatus(Long instanceId, 
+                                                                ModelDeploymentInstance.DeploymentStatus status, 
+                                                                String errorMessage) {
+        log.info("更新部署实例状态 - 实例ID: {}, 新状态: {}", instanceId, status);
+        
+        Optional<ModelDeploymentInstance> optionalInstance = deploymentInstanceRepository.findById(instanceId);
+        if (optionalInstance.isPresent()) {
+            ModelDeploymentInstance instance = optionalInstance.get();
+            instance.setStatus(status);
+            if (errorMessage != null) {
+                instance.setErrorMessage(errorMessage);
+            }
+            instance.setLastHealthCheck(LocalDateTime.now());
+            return deploymentInstanceRepository.save(instance);
+        } else {
+            throw new RuntimeException("部署实例不存在，ID: " + instanceId);
+        }
+    }
+
+    @Override
+    public List<ModelDeploymentInstance> getDeploymentInstancesByModelId(Long modelId) {
+        log.info("查询模型部署实例 - 模型ID: {}", modelId);
+        return deploymentInstanceRepository.findByModelId(modelId);
+    }
+
+    @Override
+    public List<ModelDeploymentInstance> getRunningDeploymentInstances() {
+        log.info("查询运行中的部署实例");
+        return deploymentInstanceRepository.findRunningInstances();
     }
 } 

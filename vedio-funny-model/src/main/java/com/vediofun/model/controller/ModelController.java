@@ -9,6 +9,7 @@ import com.vediofun.common.utils.RedisConnectionTest;
 import com.vediofun.common.utils.RedisUtil;
 import com.vediofun.common.result.Result;
 import com.vediofun.model.entity.Model;
+import com.vediofun.model.entity.ModelDeploymentInstance;
 import com.vediofun.model.service.ModelService;
 import com.vediofun.model.dto.InstallEnvironmentRequest;
 import com.vediofun.model.dto.InstallEnvironmentResult;
@@ -408,6 +409,41 @@ public class ModelController {
             // 调用服务层部署模型
             RayDeploymentResponse result = modelService.deployModelToRayCluster(request);
             
+            // 如果部署成功，创建部署实例记录
+            if ("SUCCESS".equals(result.getStatus()) || "RUNNING".equals(result.getStatus())) {
+                try {
+                    // 获取模型信息
+                    Model model = modelService.getModelById(request.getModelId());
+                    
+                    // 创建部署实例记录
+                    ModelDeploymentInstance instance = new ModelDeploymentInstance();
+                    instance.setModelId(request.getModelId());
+                    instance.setModelName(model != null ? model.getName() : request.getModelName());
+                    instance.setModelPath(model != null ? model.getFilePath() : "");
+                    instance.setDeploymentType("RAY_CLUSTER");
+                    instance.setClusterAddress(result.getClusterAddress());
+                    instance.setServiceEndpoint(result.getServiceEndpoint());
+                    instance.setStatus("SUCCESS".equals(result.getStatus()) ? 
+                            ModelDeploymentInstance.DeploymentStatus.RUNNING : 
+                            ModelDeploymentInstance.DeploymentStatus.DEPLOYING);
+                    instance.setModelEngine("VLLM"); // 默认使用VLLM，可以后续从请求中获取
+                    instance.setNodeIds(request.getNodeIds() != null ? 
+                            String.join(",", request.getNodeIds()) : "");
+                    instance.setDeployedBy(request.getUserId());
+                    
+                    // 保存部署实例记录
+                    ModelDeploymentInstance savedInstance = modelService.saveDeploymentInstance(instance);
+                    log.info("部署实例记录已保存 - 实例ID: {}, 模型ID: {}, 状态: {}", 
+                            savedInstance.getId(), savedInstance.getModelId(), savedInstance.getStatus());
+                            
+                    // 将实例ID添加到响应中
+                    result.setDeploymentId(savedInstance.getId().toString());
+                } catch (Exception e) {
+                    log.error("保存部署实例记录失败", e);
+                    // 不阻断部署成功的响应，只记录错误日志
+                }
+            }
+            
             Map<String, Object> response = new HashMap<>();
             response.put("code", 200);
             response.put("message", "Ray集群部署请求已提交");
@@ -423,6 +459,51 @@ public class ModelController {
         }
     }
     
+    @GetMapping("/deployment-instances")
+    @Operation(summary = "获取运行中的部署实例", description = "获取所有运行中的模型部署实例")
+    public ResponseEntity<Result<List<ModelDeploymentInstance>>> getRunningDeploymentInstances() {
+        try {
+            log.info("获取运行中的部署实例列表");
+            List<ModelDeploymentInstance> instances = modelService.getRunningDeploymentInstances();
+            return ResponseEntity.ok(Result.success("获取运行中的部署实例成功", instances));
+        } catch (Exception e) {
+            log.error("获取运行中的部署实例失败", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Result.error("获取运行中的部署实例失败: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/deployment-instances/model/{modelId}")
+    @Operation(summary = "根据模型ID获取部署实例", description = "根据模型ID获取该模型的所有部署实例")
+    public ResponseEntity<Result<List<ModelDeploymentInstance>>> getDeploymentInstancesByModelId(@PathVariable Long modelId) {
+        try {
+            log.info("获取模型部署实例 - 模型ID: {}", modelId);
+            List<ModelDeploymentInstance> instances = modelService.getDeploymentInstancesByModelId(modelId);
+            return ResponseEntity.ok(Result.success("获取模型部署实例成功", instances));
+        } catch (Exception e) {
+            log.error("获取模型部署实例失败 - 模型ID: {}", modelId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Result.error("获取模型部署实例失败: " + e.getMessage()));
+        }
+    }
+
+    @PutMapping("/deployment-instances/{instanceId}/status")
+    @Operation(summary = "更新部署实例状态", description = "更新指定部署实例的运行状态")
+    public ResponseEntity<Result<ModelDeploymentInstance>> updateDeploymentInstanceStatus(
+            @PathVariable Long instanceId,
+            @RequestParam ModelDeploymentInstance.DeploymentStatus status,
+            @RequestParam(required = false) String errorMessage) {
+        try {
+            log.info("更新部署实例状态 - 实例ID: {}, 新状态: {}", instanceId, status);
+            ModelDeploymentInstance updatedInstance = modelService.updateDeploymentInstanceStatus(instanceId, status, errorMessage);
+            return ResponseEntity.ok(Result.success("部署实例状态更新成功", updatedInstance));
+        } catch (Exception e) {
+            log.error("更新部署实例状态失败 - 实例ID: {}", instanceId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Result.error("更新部署实例状态失败: " + e.getMessage()));
+        }
+    }
+
     @GetMapping("/check-environment")
     @Operation(summary = "检查当前节点环境", description = "检查当前节点的环境信息，包括GPU、CPU、内存等")
     public ResponseEntity<Result<NodeEnvironmentInfo>> checkCurrentNodeEnvironment() {

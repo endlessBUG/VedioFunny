@@ -1,6 +1,7 @@
 package com.vediofun.model.service;
 
 import com.vediofun.model.entity.Model;
+import com.vediofun.model.entity.ModelDeploymentInstance;
 import com.vediofun.model.dto.InstallEnvironmentRequest;
 import com.vediofun.model.dto.InstallEnvironmentResult;
 import com.vediofun.model.dto.RayDeploymentRequest;
@@ -149,4 +150,39 @@ public interface ModelService {
     Map<String, Object> launchRayLLMService(String modelName, String modelPath, 
                                           String clusterAddress, Integer maxConcurrency, 
                                           String modelEngine);
+
+    /**
+     * 保存模型部署实例
+     *
+     * @param instance 部署实例对象
+     * @return 保存后的部署实例对象
+     */
+    ModelDeploymentInstance saveDeploymentInstance(ModelDeploymentInstance instance);
+
+    /**
+     * 更新部署实例状态
+     *
+     * @param instanceId 实例ID
+     * @param status 新状态
+     * @param errorMessage 错误信息（可选）
+     * @return 更新后的部署实例对象
+     */
+    ModelDeploymentInstance updateDeploymentInstanceStatus(Long instanceId, 
+                                                         ModelDeploymentInstance.DeploymentStatus status, 
+                                                         String errorMessage);
+
+    /**
+     * 根据模型ID获取部署实例列表
+     *
+     * @param modelId 模型ID
+     * @return 部署实例列表
+     */
+    List<ModelDeploymentInstance> getDeploymentInstancesByModelId(Long modelId);
+
+    /**
+     * 获取运行中的部署实例列表
+     *
+     * @return 运行中的部署实例列表
+     */
+    List<ModelDeploymentInstance> getRunningDeploymentInstances();
 }
