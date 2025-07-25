@@ -327,3 +327,14 @@ api-docs/
 
 # 错误报告和调试
 *.stackdump 
+
+# ================================
+# 大文件和安装程序
+# ================================
+
+# Miniconda 安装文件（大文件，不需要版本控制）
+**/installers/Miniconda3-*.sh
+
+# 其他大型安装文件
+**/installers/*.tar.gz
+**/installers/*.zip 
