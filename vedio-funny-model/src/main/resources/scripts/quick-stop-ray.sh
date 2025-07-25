@@ -11,11 +11,18 @@ echo "🛑 快速停止Ray集群..."
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_root="$(dirname "$script_dir")"
 
-# 加载ray.env环境
-if [ -f "$project_root/resources/ray.env" ]; then
-    source "$project_root/resources/ray.env"
+# 加载ray.env环境 - 优先使用环境变量传入的路径
+if [[ -n "$RAY_ENV_FILE" ]]; then
+    ENV_FILE="$RAY_ENV_FILE"
 else
-    echo "❌ 找不到ray.env文件: $project_root/resources/ray.env"
+    ENV_FILE="$project_root/ray.env"
+fi
+
+if [ -f "$ENV_FILE" ]; then
+    source "$ENV_FILE"
+else
+    echo "❌ 找不到ray.env文件: $ENV_FILE"
+    echo "提示: 可以设置 RAY_ENV_FILE 环境变量指向正确的ray.env文件路径"
     exit 1
 fi
 
@@ -56,11 +63,18 @@ echo "🛑 快速停止Ray集群..."
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_root="$(dirname "$script_dir")"
 
-# 加载ray.env环境
-if [ -f "$project_root/resources/ray.env" ]; then
-    source "$project_root/resources/ray.env"
+# 加载ray.env环境 - 优先使用环境变量传入的路径
+if [[ -n "$RAY_ENV_FILE" ]]; then
+    ENV_FILE="$RAY_ENV_FILE"
 else
-    echo "❌ 找不到ray.env文件: $project_root/resources/ray.env"
+    ENV_FILE="$project_root/ray.env"
+fi
+
+if [ -f "$ENV_FILE" ]; then
+    source "$ENV_FILE"
+else
+    echo "❌ 找不到ray.env文件: $ENV_FILE"
+    echo "提示: 可以设置 RAY_ENV_FILE 环境变量指向正确的ray.env文件路径"
     exit 1
 fi
 

@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import com.vediofun.model.service.CosService;
 import com.vediofun.model.dto.RayLLMLaunchRequest;
+import com.vediofun.model.util.ResourceUtil;
 
 /**
  * 模型服务控制器
@@ -66,6 +67,9 @@ public class ModelController {
     private final CosService cosService;
     private final ModelDownloadService modelDownloadService;
     private final ModelScopeDownloadService modelScopeDownloadService;
+    
+    @Autowired
+    private ResourceUtil resourceUtil;
 
     /**
      * 健康检查
@@ -605,6 +609,65 @@ public class ModelController {
             log.error("Ray安装失败", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Result.error("Ray安装失败: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * 验证资源文件
+     */
+    @GetMapping("/validate-resources")
+    @Operation(summary = "验证资源文件", description = "验证所有配置文件、脚本等资源是否正确加载")
+    public ResponseEntity<Result<Map<String, Object>>> validateResources() {
+        try {
+            log.info("开始验证资源文件...");
+            
+            Map<String, Object> result = new HashMap<>();
+            
+            // 验证资源完整性
+            boolean allValid = resourceUtil.validateResources();
+            result.put("allValid", allValid);
+            result.put("status", allValid ? "success" : "warning");
+            
+            // 验证具体资源
+            Map<String, Object> details = new HashMap<>();
+            
+            // 验证ray.env配置
+            try {
+                Map<String, String> rayConfig = resourceUtil.loadRayEnvConfig();
+                details.put("rayEnvConfig", Map.of(
+                    "loaded", true,
+                    "configCount", rayConfig.size(),
+                    "sampleKeys", rayConfig.keySet().stream().limit(5).toArray()
+                ));
+            } catch (Exception e) {
+                details.put("rayEnvConfig", Map.of("loaded", false, "error", e.getMessage()));
+            }
+            
+            // 验证脚本文件
+            String[] testScripts = {"install-miniconda.sh", "setup-ray-env.sh"};
+            Map<String, Object> scriptResults = new HashMap<>();
+            for (String script : testScripts) {
+                try {
+                    String scriptPath = resourceUtil.getScriptPath(script);
+                    scriptResults.put(script, Map.of(
+                        "available", scriptPath != null,
+                        "path", scriptPath != null ? scriptPath : "not found"
+                    ));
+                } catch (Exception e) {
+                    scriptResults.put(script, Map.of("available", false, "error", e.getMessage()));
+                }
+            }
+            details.put("scripts", scriptResults);
+            
+            result.put("details", details);
+            result.put("timestamp", LocalDateTime.now());
+            
+            return ResponseEntity.ok(Result.success("资源验证完成", result));
+            
+        } catch (Exception e) {
+            log.error("资源验证失败", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Result.error("资源验证失败: " + e.getMessage()));
         }
     }
 } 

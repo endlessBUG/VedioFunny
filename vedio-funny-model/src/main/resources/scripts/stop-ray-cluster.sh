@@ -37,11 +37,18 @@ stop_ray_cluster() {
     local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     local project_root="$(dirname "$script_dir")"
     
-    # 加载ray.env环境
-    if [ -f "$project_root/resources/ray.env" ]; then
-        source "$project_root/resources/ray.env"
+    # 加载ray.env环境 - 优先使用环境变量传入的路径
+    if [[ -n "$RAY_ENV_FILE" ]]; then
+        local ENV_FILE="$RAY_ENV_FILE"
     else
-        log_error "找不到ray.env文件: $project_root/resources/ray.env"
+        local ENV_FILE="$project_root/ray.env"
+    fi
+    
+    if [ -f "$ENV_FILE" ]; then
+        source "$ENV_FILE"
+    else
+        log_error "找不到ray.env文件: $ENV_FILE"
+        log_info "提示: 可以设置 RAY_ENV_FILE 环境变量指向正确的ray.env文件路径"
         return 1
     fi
     
@@ -295,11 +302,18 @@ stop_ray_cluster() {
     local script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     local project_root="$(dirname "$script_dir")"
     
-    # 加载ray.env环境
-    if [ -f "$project_root/resources/ray.env" ]; then
-        source "$project_root/resources/ray.env"
+    # 加载ray.env环境 - 优先使用环境变量传入的路径
+    if [[ -n "$RAY_ENV_FILE" ]]; then
+        local ENV_FILE="$RAY_ENV_FILE"
     else
-        log_error "找不到ray.env文件: $project_root/resources/ray.env"
+        local ENV_FILE="$project_root/ray.env"
+    fi
+    
+    if [ -f "$ENV_FILE" ]; then
+        source "$ENV_FILE"
+    else
+        log_error "找不到ray.env文件: $ENV_FILE"
+        log_info "提示: 可以设置 RAY_ENV_FILE 环境变量指向正确的ray.env文件路径"
         return 1
     fi
     

@@ -11,12 +11,18 @@ set -e  # 遇到错误立即退出
 # 脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 加载Ray环境变量配置
-ENV_FILE="$SCRIPT_DIR/../resources/ray.env"
+# 加载Ray环境变量配置 - 优先使用环境变量传入的路径
+if [[ -n "$RAY_ENV_FILE" ]]; then
+    ENV_FILE="$RAY_ENV_FILE"
+else
+    ENV_FILE="$SCRIPT_DIR/../ray.env"
+fi
+
 if [[ -f "$ENV_FILE" ]]; then
     source "$ENV_FILE"
 else
     echo "❌ 未找到Ray环境配置文件: $ENV_FILE"
+    echo "提示: 请设置 RAY_ENV_FILE 环境变量指向正确的ray.env文件路径"
     exit 1
 fi
 

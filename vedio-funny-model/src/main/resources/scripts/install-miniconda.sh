@@ -35,13 +35,19 @@ log_error() {
 # 脚本目录
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# 加载Ray环境变量配置
-ENV_FILE="$SCRIPT_DIR/../resources/ray.env"
+# 加载Ray环境变量配置 - 优先使用环境变量传入的路径
+if [[ -n "$RAY_ENV_FILE" ]]; then
+    ENV_FILE="$RAY_ENV_FILE"
+else
+    ENV_FILE="$SCRIPT_DIR/../ray.env"
+fi
+
 if [[ -f "$ENV_FILE" ]]; then
     log_info "加载Ray环境配置文件: $ENV_FILE"
     source "$ENV_FILE"
 else
     log_warning "未找到Ray环境配置文件 $ENV_FILE，使用默认配置"
+    log_info "提示: 可以设置 RAY_ENV_FILE 环境变量指向正确的ray.env文件路径"
 fi
 
 # 配置变量（使用环境变量或默认值）
@@ -128,8 +134,13 @@ download_miniconda() {
     # 脚本目录
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-    # 预下载安装包路径
-    PREBUILT_INSTALLER="$SCRIPT_DIR/../resources/installers/$INSTALLER_NAME"
+    # 预下载安装包路径 - 优先使用环境变量传入的路径
+    if [[ -n "$INSTALLERS_DIR" ]]; then
+        PREBUILT_INSTALLER="$INSTALLERS_DIR/$INSTALLER_NAME"
+    else
+        # 回退到相对路径（直接执行脚本时使用）
+        PREBUILT_INSTALLER="../installers/$INSTALLER_NAME"
+    fi
     INSTALLER_PATH="$DOWNLOAD_DIR/$INSTALLER_NAME"
 
     # 优先使用预下载的安装包

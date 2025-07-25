@@ -19,6 +19,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.servlet.context.ServletWebServerApplicationContext;
 
 import com.vediofun.model.service.DeploymentService;
+import com.vediofun.model.util.ResourceUtil;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -67,6 +68,9 @@ public class ModelServiceImpl implements ModelService {
     
     @Autowired
     private ServletWebServerApplicationContext webServerAppCtxt;
+    
+    @Autowired
+    private ResourceUtil resourceUtil;
     
     private String getClusterServiceUrl(String nodeId) {
         String serviceId = "vedio-funny-model"; // 修改为正确的服务ID
@@ -319,8 +323,9 @@ public class ModelServiceImpl implements ModelService {
             String command = commandBuilder.toString();
 
             // 构建完整的命令，先加载ray.env环境并激活conda环境再执行ray命令
-            String fullCommand = String.format("source %s/resources/ray.env && source $CONDA_HOME/etc/profile.d/conda.sh && conda activate $RAY_ENV_NAME && %s", 
-                    System.getProperty("user.dir"), command);
+            String rayEnvPath = resourceUtil.getRayEnvPath();
+            String fullCommand = String.format("source %s && source $CONDA_HOME/etc/profile.d/conda.sh && conda activate $RAY_ENV_NAME && %s", 
+                    rayEnvPath, command);
             log.info("执行Ray启动命令: {}", fullCommand);
 
             // 执行Ray启动命令
@@ -448,8 +453,9 @@ public class ModelServiceImpl implements ModelService {
             log.info("执行Ray加入集群命令: {}", command);
             
             // 构建完整的命令，先加载ray.env环境并激活conda环境再执行ray命令
-            String fullCommand = String.format("source %s/resources/ray.env && source $CONDA_HOME/etc/profile.d/conda.sh && conda activate $RAY_ENV_NAME && %s", 
-                    System.getProperty("user.dir"), command);
+            String rayEnvPath = resourceUtil.getRayEnvPath();
+            String fullCommand = String.format("source %s && source $CONDA_HOME/etc/profile.d/conda.sh && conda activate $RAY_ENV_NAME && %s", 
+                    rayEnvPath, command);
             
             // 执行Ray加入集群命令
             ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c", fullCommand);
@@ -504,8 +510,9 @@ public class ModelServiceImpl implements ModelService {
             String clusterAddress = (String) request.get("clusterAddress");
             
             // 构建完整的命令，先加载ray.env环境并激活conda环境再执行ray命令
-            String fullCommand = String.format("source %s/resources/ray.env && source $CONDA_HOME/etc/profile.d/conda.sh && conda activate $RAY_ENV_NAME && ray status", 
-                    System.getProperty("user.dir"));
+            String rayEnvPath = resourceUtil.getRayEnvPath();
+            String fullCommand = String.format("source %s && source $CONDA_HOME/etc/profile.d/conda.sh && conda activate $RAY_ENV_NAME && ray status", 
+                    rayEnvPath);
             
             ProcessBuilder pb = new ProcessBuilder("bash", "-c", fullCommand);
             pb.redirectErrorStream(true);
@@ -648,9 +655,10 @@ public class ModelServiceImpl implements ModelService {
             log.info("连接到Ray集群: {}", clusterAddress);
             
             // 使用ray.env配置
+            String rayEnvPath = resourceUtil.getRayEnvPath();
             ProcessBuilder pb = new ProcessBuilder();
             pb.command("bash", "-c", 
-                    "source " + System.getProperty("user.dir") + "/resources/ray.env && " +
+                    "source " + rayEnvPath + " && " +
                     "ray start --address=" + clusterAddress + " --block");
             
             Process process = pb.start();
@@ -769,8 +777,11 @@ public class ModelServiceImpl implements ModelService {
         StringBuilder cmd = new StringBuilder();
         
         // 加载环境变量
-        cmd.append("source ").append(System.getProperty("user.dir"))
-           .append("/resources/ray.env && ");
+        String rayEnvPath = resourceUtil.getRayEnvPath();
+        cmd.append("source ").append(rayEnvPath).append(" && ");
+        
+        // 添加动态GPU检测的环境变量
+        addDynamicEnvironmentVariables(cmd);
         
         // 根据模型引擎构建命令
         switch (modelEngine.toLowerCase()) {
@@ -778,8 +789,11 @@ public class ModelServiceImpl implements ModelService {
                 cmd.append("${CONDA_HOME}/envs/${CONDA_ENV_NAME}/bin/python -m vllm.entrypoints.openai.api_server ")
                    .append("--model ").append(modelPath).append(" ")
                    .append("--host 127.0.0.1 ")
-                   .append("--port 8000 ")
-                   .append("--max-model-len 4096 ");
+                   .append("--port 8000 ");
+                // 根据GPU检测结果添加设备参数
+                addDeviceParameter(cmd);
+                cmd.append("--max-model-len 4096 ")
+                   .append("--max-num-batched-tokens 4096 ");  // 设置为与max-model-len相同的值
                 if (maxConcurrency != null) {
                     cmd.append("--max-num-seqs ").append(maxConcurrency).append(" ");
                 }
@@ -819,6 +833,84 @@ public class ModelServiceImpl implements ModelService {
         }
         // 默认端点
         return "http://localhost:8000";
+    }
+    
+    /**
+     * 添加动态环境变量到命令中
+     */
+    private void addDynamicEnvironmentVariables(StringBuilder cmd) {
+        boolean hasGpu = detectGpuAvailability();
+        
+        if (!hasGpu) {
+            cmd.append("export VLLM_SKIP_CPU_INIT=1 && ");
+            cmd.append("export TORCH_USE_CUDA_DSA=0 && ");
+            cmd.append("export VLLM_USE_CPU_ONLY=1 && ");
+            cmd.append("export CUDA_VISIBLE_DEVICES=\"\" && ");
+            cmd.append("export NVIDIA_VISIBLE_DEVICES=\"\" && ");
+            cmd.append("export HIP_VISIBLE_DEVICES=\"\" && ");
+            cmd.append("export XFORMERS_DISABLED=1 && ");  // 禁用xformers
+            cmd.append("export VLLM_USE_TRITON=0 && ");  // 禁用Triton
+            cmd.append("export DISABLE_XFORMERS=1 && ");  // 另一种禁用xformers的方法
+            cmd.append("export VLLM_CPU_ONLY=1 && ");  // 强制CPU模式
+            cmd.append("export PYTORCH_ENABLE_MPS_FALLBACK=1 && ");  // 禁用MPS
+            cmd.append("export VLLM_CPU_KVCACHE_SPACE=8 && ");  // 设置CPU KV缓存空间为8GB
+            log.info("检测到无GPU环境，已添加CPU优化环境变量到启动命令");
+        } else {
+            log.info("检测到GPU环境，使用默认GPU加速模式");
+        }
+    }
+    
+    /**
+     * 根据GPU检测结果添加设备参数
+     */
+    private void addDeviceParameter(StringBuilder cmd) {
+        boolean hasGpu = detectGpuAvailability();
+        
+        if (!hasGpu) {
+            cmd.append("--device cpu ");
+            log.info("添加CPU设备参数到启动命令");
+        } else {
+            log.info("使用默认GPU设备参数");
+        }
+    }
+    
+    /**
+     * 检测GPU可用性
+     */
+    private boolean detectGpuAvailability() {
+        // 方法1: 检查CUDA环境变量
+        String cudaVisibleDevices = System.getenv("CUDA_VISIBLE_DEVICES");
+        if (cudaVisibleDevices != null && cudaVisibleDevices.trim().isEmpty()) {
+            return false; // CUDA被显式禁用
+        }
+        
+        // 方法2: 检查nvidia-smi命令（仅NVIDIA GPU）
+        try {
+            ProcessBuilder pb = new ProcessBuilder("nvidia-smi", "--query-gpu=name", "--format=csv,noheader");
+            Process process = pb.start();
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(process.getInputStream()))) {
+                    String line = reader.readLine();
+                    if (line != null && !line.trim().isEmpty()) {
+                        log.info("检测到NVIDIA GPU: {}", line.trim());
+                        return true; // 找到NVIDIA GPU
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // nvidia-smi不可用，继续其他检测方法
+        }
+        
+        // 方法3: macOS默认使用CPU模式（vLLM在macOS上通常需要CPU模式）
+        if (System.getProperty("os.name", "").toLowerCase().contains("mac")) {
+            log.info("检测到macOS系统，vLLM使用CPU模式以确保兼容性");
+            return false; // macOS强制使用CPU模式
+        }
+        
+        // 默认假设无GPU（保守策略）
+        return false;
     }
     
     /**
@@ -968,9 +1060,8 @@ public class ModelServiceImpl implements ModelService {
             // 获取脚本路径
             String scriptPath = getScriptPath("ray-env-check.sh");
 
-            // 执行ray-env-check.sh脚本获取JSON输出
-            ProcessBuilder processBuilder = new ProcessBuilder("bash", scriptPath, "json");
-            processBuilder.redirectErrorStream(true);
+            // 执行ray-env-check.sh脚本获取JSON输出 - 使用新的方法传递环境变量
+            ProcessBuilder processBuilder = resourceUtil.createScriptProcessBuilder(scriptPath, "json");
 
             Process process = processBuilder.start();
             StringBuilder output = new StringBuilder();
@@ -1101,9 +1192,8 @@ public class ModelServiceImpl implements ModelService {
      * 获取脚本文件路径
      */
     private String getScriptPath(String scriptName) {
-        // 假设脚本在项目的scripts目录下
-        String projectRoot = System.getProperty("user.dir");
-        return projectRoot + "/scripts/" + scriptName;
+        // 从classpath中获取脚本路径
+        return resourceUtil.getScriptPath(scriptName);
     }
     
     /**
@@ -1186,68 +1276,11 @@ public class ModelServiceImpl implements ModelService {
      * 加载ray.env配置文件
      */
     private Map<String, String> loadRayEnvConfig() {
-        Map<String, String> config = new HashMap<>();
-        
-        try {
-            String projectRoot = System.getProperty("user.dir");
-            String envFilePath = projectRoot + "/resources/ray.env";
-            
-            java.io.File envFile = new java.io.File(envFilePath);
-            if (!envFile.exists()) {
-                log.warn("ray.env配置文件不存在: {}", envFilePath);
-                return config;
-            }
-            
-            try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                    new java.io.FileReader(envFile))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    line = line.trim();
-                    
-                    // 跳过注释和空行
-                    if (line.isEmpty() || line.startsWith("#")) {
-                        continue;
-                    }
-                    
-                    // 解析 KEY=VALUE 格式
-                    int equalIndex = line.indexOf('=');
-                    if (equalIndex > 0) {
-                        String key = line.substring(0, equalIndex).trim();
-                        String value = line.substring(equalIndex + 1).trim();
-                        
-                        // 移除引号
-                        if (value.startsWith("\"") && value.endsWith("\"")) {
-                            value = value.substring(1, value.length() - 1);
-                        }
-                        
-                        // 简单的变量替换
-                        value = value.replace("${HOME}", System.getProperty("user.home"));
-                        value = value.replace("${HOSTNAME}", getHostname());
-                        
-                        config.put(key, value);
-                    }
-                }
-            }
-            
-            log.debug("成功加载ray.env配置，包含{}个配置项", config.size());
-            
-        } catch (Exception e) {
-            log.error("加载ray.env配置文件失败", e);
-        }
-        
-        return config;
+        // 直接使用resourceUtil的方法
+        return resourceUtil.loadRayEnvConfig();
     }
     
-    /**
-     * 获取主机名
-     */
-    private String getHostname() {
-        try {
-            return java.net.InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
-            return "unknown";
-        }
-    }
+
     
     /**
      * 检查CPU信息
@@ -1475,9 +1508,8 @@ public class ModelServiceImpl implements ModelService {
             // 获取安装脚本路径
             String scriptPath = getMinicondaInstallScriptPath();
             
-            // 执行安装脚本（自动化模式）
-            ProcessBuilder processBuilder = new ProcessBuilder("bash", scriptPath);
-            processBuilder.redirectErrorStream(true);
+            // 执行安装脚本（自动化模式） - 使用新的方法传递环境变量
+            ProcessBuilder processBuilder = resourceUtil.createScriptProcessBuilder(scriptPath);
             
             // 设置环境变量启用自动化模式
             processBuilder.environment().put("AUTO_INSTALL", "true");
@@ -1521,9 +1553,8 @@ public class ModelServiceImpl implements ModelService {
             // 获取Ray安装脚本路径
             String scriptPath = getRayInstallScriptPath();
             
-            // 执行安装脚本（自动化模式）
-            ProcessBuilder processBuilder = new ProcessBuilder("bash", scriptPath);
-            processBuilder.redirectErrorStream(true);
+            // 执行安装脚本（自动化模式） - 使用新的方法传递环境变量
+            ProcessBuilder processBuilder = resourceUtil.createScriptProcessBuilder(scriptPath);
             
             // 设置环境变量启用自动化模式
             processBuilder.environment().put("AUTO_INSTALL", "true");
@@ -1563,18 +1594,16 @@ public class ModelServiceImpl implements ModelService {
      * 获取Miniconda安装脚本路径
      */
     private String getMinicondaInstallScriptPath() {
-        // 获取项目根路径下的脚本
-        String userDir = System.getProperty("user.dir");
-        return userDir + "/scripts/install-miniconda.sh";
+        // 从classpath中获取脚本路径
+        return resourceUtil.getScriptPath("install-miniconda.sh");
     }
     
     /**
      * 获取Ray安装脚本路径（实际上是验证脚本，它包含Ray安装逻辑）
      */
     private String getRayInstallScriptPath() {
-        // 获取项目根路径下的脚本
-        String userDir = System.getProperty("user.dir");
-        return userDir + "/scripts/setup-ray-env.sh";
+        // 从classpath中获取脚本路径
+        return resourceUtil.getScriptPath("setup-ray-env.sh");
     }
     
     @Override
@@ -1746,11 +1775,24 @@ public class ModelServiceImpl implements ModelService {
             String condaHome = envConfig.getOrDefault("CONDA_HOME", System.getProperty("user.home") + "/miniconda3");
             String condaEnvName = envConfig.getOrDefault("CONDA_ENV_NAME", "ray-env");
             
+            // 检测操作系统
+            String os = System.getProperty("os.name").toLowerCase();
+            boolean isMac = os.contains("mac");
+            
             // 构建安装命令 - 主要安装VLLM和transformers，TGI可选安装
             StringBuilder cmd = new StringBuilder();
-            cmd.append("source ").append(System.getProperty("user.dir")).append("/resources/ray.env && ");
+            String rayEnvPath = resourceUtil.getRayEnvPath();
+            cmd.append("source ").append(rayEnvPath).append(" && ");
             cmd.append("source ").append(condaHome).append("/bin/activate ").append(condaEnvName).append(" && ");
-            cmd.append("pip install vllm transformers accelerate");
+            
+            // Mac系统使用指定版本的vllm
+            if (isMac) {
+                cmd.append("pip install vllm==0.9.2 transformers accelerate");
+                log.info("检测到Mac系统，安装vllm版本0.9.2");
+            } else {
+                cmd.append("pip install vllm transformers accelerate");
+                log.info("非Mac系统，安装最新版本的vllm");
+            }
             
             log.info("执行模型引擎依赖安装命令: {}", cmd.toString());
             
