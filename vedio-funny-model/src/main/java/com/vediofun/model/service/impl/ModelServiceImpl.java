@@ -780,23 +780,15 @@ public class ModelServiceImpl implements ModelService {
         String rayEnvPath = resourceUtil.getRayEnvPath();
         cmd.append("source ").append(rayEnvPath).append(" && ");
         
-        // 添加动态GPU检测的环境变量
-        addDynamicEnvironmentVariables(cmd);
-        
         // 根据模型引擎构建命令
         switch (modelEngine.toLowerCase()) {
             case "vllm":
+                // 只添加必要的环境变量
+                cmd.append("export VLLM_CPU_KVCACHE_SPACE=8 && ");
                 cmd.append("${CONDA_HOME}/envs/${CONDA_ENV_NAME}/bin/python -m vllm.entrypoints.openai.api_server ")
                    .append("--model ").append(modelPath).append(" ")
                    .append("--host 127.0.0.1 ")
-                   .append("--port 8000 ");
-                // 根据GPU检测结果添加设备参数
-                addDeviceParameter(cmd);
-                cmd.append("--max-model-len 4096 ")
-                   .append("--max-num-batched-tokens 4096 ");  // 设置为与max-model-len相同的值
-                if (maxConcurrency != null) {
-                    cmd.append("--max-num-seqs ").append(maxConcurrency).append(" ");
-                }
+                   .append("--port 8000");
                 break;
                 
             case "tgi":
