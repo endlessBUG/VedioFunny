@@ -87,7 +87,7 @@ export default {
       } catch (error) {
         console.error('API连接失败:', error)
         if (error.code === 'ECONNREFUSED') {
-          result.value = '网关服务(8082)未启动，请先启动后端服务'
+          result.value = '网关服务(8803)未启动，请先启动后端服务'
         } else {
           result.value = `API连接失败: ${error.message}`
         }
