@@ -51,8 +51,6 @@
         <module>vedio-funny-gateway</module>
         <module>vedio-funny-auth</module>
         <module>vedio-funny-model</module>
-        <module>vedio-funny-frontend</module>
-        <module>vedio-funny-tracing</module>
     </modules>
 
     <dependencyManagement>
