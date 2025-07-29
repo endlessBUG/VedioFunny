@@ -409,8 +409,7 @@ public class ModelController {
             // 调用服务层部署模型
             RayDeploymentResponse result = modelService.deployModelToRayCluster(request);
             
-            // 如果部署成功，创建部署实例记录
-            if ("SUCCESS".equals(result.getStatus()) || "RUNNING".equals(result.getStatus())) {
+            // 创建部署实例记录（记录所有状态）
                 try {
                     // 获取模型信息
                     Model model = modelService.getModelById(request.getModelId());
@@ -418,18 +417,55 @@ public class ModelController {
                     // 创建部署实例记录
                     ModelDeploymentInstance instance = new ModelDeploymentInstance();
                     instance.setModelId(request.getModelId());
-                    instance.setModelName(model != null ? model.getName() : request.getModelName());
+                    instance.setModelName(request.getModelName() != null ? request.getModelName() : 
+                            (model != null ? model.getName() : "Unknown Model"));
                     instance.setModelPath(model != null ? model.getFilePath() : "");
                     instance.setDeploymentType("RAY_CLUSTER");
                     instance.setClusterAddress(result.getClusterAddress());
                     instance.setServiceEndpoint(result.getServiceEndpoint());
-                    instance.setStatus("SUCCESS".equals(result.getStatus()) ? 
-                            ModelDeploymentInstance.DeploymentStatus.RUNNING : 
-                            ModelDeploymentInstance.DeploymentStatus.DEPLOYING);
-                    instance.setModelEngine("VLLM"); // 默认使用VLLM，可以后续从请求中获取
-                    instance.setNodeIds(request.getNodeIds() != null ? 
-                            String.join(",", request.getNodeIds()) : "");
-                    instance.setDeployedBy(request.getUserId());
+                
+                // 直接使用部署状态设置实例状态
+                ModelDeploymentInstance.DeploymentStatus instanceStatus;
+                try {
+                    instanceStatus = ModelDeploymentInstance.DeploymentStatus.valueOf(result.getStatus());
+                } catch (IllegalArgumentException e) {
+                    // 如果状态值不存在于枚举中，使用UNKNOWN
+                    instanceStatus = ModelDeploymentInstance.DeploymentStatus.UNKNOWN;
+                }
+                instance.setStatus(instanceStatus);
+                
+                // 如果部署失败，记录错误信息
+                if (ModelDeploymentInstance.DeploymentStatus.FAILED.equals(instanceStatus) && result.getError() != null) {
+                    instance.setErrorMessage(result.getError());
+                }
+                
+                                    instance.setModelEngine("VLLM"); // 默认使用VLLM，可以后续从请求中获取
+                instance.setNodeIds(request.getNodeIds() != null ? 
+                        String.join(",", request.getNodeIds()) : "");
+                instance.setDeployedBy(request.getUserId());
+                
+                // 设置最大并发数（基于CPU核心数估算）
+                instance.setMaxConcurrency(request.getRayConfig() != null && 
+                        request.getRayConfig().getNumCpus() != null ? 
+                        request.getRayConfig().getNumCpus() * 2 : 10);
+                
+                // 设置部署配置（将请求信息序列化存储）
+                try {
+                    String deploymentConfig = String.format(
+                        "{\"modelSource\":\"%s\",\"deploymentType\":\"%s\",\"nodeCount\":%d,\"rayConfig\":%s}",
+                        request.getModelSource() != null ? request.getModelSource() : "",
+                        request.getDeploymentType() != null ? request.getDeploymentType() : "RAY_CLUSTER",
+                        request.getNodeIds() != null ? request.getNodeIds().size() : 0,
+                        request.getRayConfig() != null ? "\"configured\"" : "\"default\""
+                    );
+                    instance.setDeploymentConfig(deploymentConfig);
+                } catch (Exception e) {
+                    log.warn("设置部署配置失败", e);
+                    instance.setDeploymentConfig("{}");
+                }
+                
+                // 设置最后健康检查时间为当前时间
+                instance.setLastHealthCheck(LocalDateTime.now());
                     
                     // 保存部署实例记录
                     ModelDeploymentInstance savedInstance = modelService.saveDeploymentInstance(instance);
@@ -440,8 +476,7 @@ public class ModelController {
                     result.setDeploymentId(savedInstance.getId().toString());
                 } catch (Exception e) {
                     log.error("保存部署实例记录失败", e);
-                    // 不阻断部署成功的响应，只记录错误日志
-                }
+                // 不阻断部署响应，只记录错误日志
             }
             
             Map<String, Object> response = new HashMap<>();

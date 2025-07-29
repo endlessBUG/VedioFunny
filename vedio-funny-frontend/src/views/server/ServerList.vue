@@ -104,7 +104,7 @@
         <el-form-item label="选中服务器">
           <div class="selected-servers">
             <el-tag
-              v-for="(server, index) in selectedServers"
+              v-for="(server, index) in modalSelectedServers"
               :key="index"
               style="margin-right: 8px; margin-bottom: 8px;"
             >
@@ -364,11 +364,18 @@ export default {
       selectedServers.value = val
     }
 
+    // 模态框内独立的选中服务器列表
+    const modalSelectedServers = ref([])
+
     const openDeployDialog = () => {
       if (selectedServers.value.length === 0) {
         ElMessage.warning('请先选择服务器')
         return
       }
+      
+      // 将当前选中的服务器深度复制到模态框专用变量
+      modalSelectedServers.value = JSON.parse(JSON.stringify(selectedServers.value))
+      
       fetchModelList()
       deployDialogVisible.value = true
     }
@@ -382,8 +389,8 @@ export default {
       try {
         ElMessage.info('正在提交部署请求...')
         
-        console.log('Selected servers:', selectedServers.value)
-        const nodeIds = selectedServers.value.map(s => s.instanceId)
+        console.log('Selected servers:', modalSelectedServers.value)
+        const nodeIds = modalSelectedServers.value.map(s => s.instanceId)
         console.log('Extracted nodeIds:', nodeIds)
         
         // 验证nodeIds
@@ -440,6 +447,7 @@ export default {
       offlineServers,
       averageCpuUsage,
       selectedServers,
+      modalSelectedServers,
       deployDialogVisible,
       modelList,
       deploymentTypes,

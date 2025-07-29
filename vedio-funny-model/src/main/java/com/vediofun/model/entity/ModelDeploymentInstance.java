@@ -57,10 +57,10 @@ public class ModelDeploymentInstance {
     private String serviceEndpoint;
 
     /**
-     * 部署状态：DEPLOYING, RUNNING, STOPPED, ERROR, UNKNOWN
+     * 部署状态：DEPLOYING, RUNNING, STOPPED, ERROR, UNKNOWN, COMPLETED, IN_PROGRESS, FAILED
      */
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", length = 20, nullable = false)
+    @Column(name = "status", nullable = false, columnDefinition = "VARCHAR(255)")
     private DeploymentStatus status = DeploymentStatus.DEPLOYING;
 
     /**
@@ -127,7 +127,10 @@ public class ModelDeploymentInstance {
         RUNNING("运行中"),
         STOPPED("已停止"),
         ERROR("错误"),
-        UNKNOWN("未知");
+        UNKNOWN("未知"),
+        COMPLETED("已完成"),
+        IN_PROGRESS("进行中"),
+        FAILED("失败");
 
         private final String description;
 
