@@ -48,11 +48,8 @@
 
     <modules>
         <module>vedio-funny-common</module>
-        <module>vedio-funny-registry</module>
-        <module>vedio-funny-sentinel</module>
         <module>vedio-funny-gateway</module>
         <module>vedio-funny-auth</module>
-        <module>vedio-funny-user</module>
         <module>vedio-funny-model</module>
         <module>vedio-funny-frontend</module>
         <module>vedio-funny-tracing</module>
